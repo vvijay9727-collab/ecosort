@@ -64,7 +64,9 @@ from app.ml.inference import (
 
 logger = logging.getLogger(__name__)
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-FRONTEND_DIR = BACKEND_DIR.parent / "frontend" / "dist"
+FRONTEND_DIR = BACKEND_DIR / "frontend" / "dist"
+if not FRONTEND_DIR.is_dir():
+    FRONTEND_DIR = BACKEND_DIR.parent / "frontend" / "dist"
 UPLOAD_DIR = BACKEND_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 IMAGE_EXTENSIONS = {
