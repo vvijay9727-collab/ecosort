@@ -64,6 +64,7 @@ from app.ml.inference import (
 
 logger = logging.getLogger(__name__)
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+FRONTEND_DIR = BACKEND_DIR.parent / "frontend" / "dist"
 UPLOAD_DIR = BACKEND_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 IMAGE_EXTENSIONS = {
@@ -348,21 +349,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
-    allow_headers=["*"],
-)
-
 ALLOWED_ORIGINS = {
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 }
+if render_external_url := os.getenv("RENDER_EXTERNAL_URL"):
+    ALLOWED_ORIGINS.add(render_external_url.rstrip("/"))
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=list(ALLOWED_ORIGINS),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 
 @app.middleware("http")
@@ -1305,4 +1305,45 @@ def serve_upload(
         image_path,
         media_type=media_type,
         headers={"Cache-Control": "private, no-store"},
+    )
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def serve_frontend(full_path: str) -> FileResponse:
+    if full_path.split("/", 1)[0] in {
+        "api",
+        "docs",
+        "redoc",
+        "openapi.json",
+        "uploads",
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The requested page was not found.",
+        )
+
+    frontend_root = FRONTEND_DIR.resolve()
+    requested_file = (frontend_root / full_path).resolve()
+    try:
+        requested_file.relative_to(frontend_root)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The requested page was not found.",
+        ) from None
+
+    if requested_file.is_file():
+        return FileResponse(requested_file)
+    if Path(full_path).suffix:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The requested file was not found.",
+        )
+
+    index_file = frontend_root / "index.html"
+    if index_file.is_file():
+        return FileResponse(index_file)
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="The frontend has not been built.",
     )

@@ -22,6 +22,19 @@ secret in the same PowerShell session when restarting the backend if existing
 sessions should remain valid. The local
 database and uploaded image files are excluded from Git.
 
+## Deploy to Render
+
+The repository includes a Render Blueprint and a Dockerfile that build and
+serve the frontend and API together from one HTTPS web service. In Render,
+choose **New** > **Blueprint**, connect the GitHub repository, and apply the
+`render.yaml` Blueprint. Render generates `ECOSORT_AUTH_SECRET` automatically.
+
+The included service uses Render's free instance. Its SQLite database and
+uploaded images are stored on temporary disk and can be lost when the service
+restarts or redeploys; it is suitable for a demo, not important production
+reports. Free instances can also spin down when idle. Use persistent storage
+before collecting data that must be retained.
+
 ## Train the waste classifier
 
 The two-category dataset is expected at `../dataset/DATASET`, with image files

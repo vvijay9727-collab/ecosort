@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ecosort
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: ECOSORT_AUTH_SECRET
+        generateValue: true
